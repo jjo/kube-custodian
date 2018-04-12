@@ -12,13 +12,12 @@ import (
 const (
 	flagRequiredLabels = "required-labels"
 	flagSystemNS       = "sys-namespaces-re"
-	systemNS           = ".*(-system|monitoring|logging|ingress)"
 )
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.PersistentFlags().StringSlice(flagRequiredLabels, []string{"created_by"}, "Labels required for resources to be skipped from scanning")
-	deleteCmd.PersistentFlags().String(flagSystemNS, systemNS, "\"system\" namespaces to skip")
+	deleteCmd.PersistentFlags().String(flagSystemNS, cleaner.SystemNS, "\"system\" namespaces to skip")
 }
 
 var deleteCmd = &cobra.Command{

@@ -11,11 +11,13 @@ import (
 )
 
 // DeleteDeployments ...
-func DeleteDeployments(clientset *kubernetes.Clientset, dryRun bool, namespace string, requiredLabels []string) error {
+func DeleteDeployments(clientset kubernetes.Interface, dryRun bool, namespace string, requiredLabels []string) (int, error) {
+
+	count := 0
 	deploys, err := clientset.AppsV1().Deployments(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("List deploys: %v", err)
-		return err
+		return count, err
 	}
 
 	deploysArray := make([]appsv1.Deployment, 0)
@@ -44,9 +46,11 @@ func DeleteDeployments(clientset *kubernetes.Clientset, dryRun bool, namespace s
 		if !dryRun {
 			if err := clientset.AppsV1().Deployments(deploy.Namespace).Delete(deploy.Name, &metav1.DeleteOptions{}); err != nil {
 				log.Errorf("failed to delete Deploy: %v", err)
+				continue
 			}
+			count++
 		}
 
 	}
-	return nil
+	return count, nil
 }

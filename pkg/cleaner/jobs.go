@@ -16,17 +16,18 @@ const (
 )
 
 // DeleteJobs ...
-func DeleteJobs(clientset *kubernetes.Clientset, dryRun bool, namespace string, requiredLabels []string) error {
+func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, requiredLabels []string) (int, error) {
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(metav1.ListOptions{})
+
+	count := 0
 	if err != nil {
 		log.Errorf("List jobs: %v", err)
-		return err
+		return count, err
 	}
 
 	jobArray := make([]batchv1.Job, 0)
 
 	for _, job := range jobs.Items {
-		log.Debugf("Job %s.%s ...", job.Namespace, job.Name)
 		if isSystemNS(job.Namespace) {
 			log.Debugf("Job %q in system NS, skipping", job.Name)
 			continue
@@ -48,7 +49,7 @@ func DeleteJobs(clientset *kubernetes.Clientset, dryRun bool, namespace string, 
 	pods, err := clientset.Core().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("List pods: %v", err)
-		return err
+		return count, err
 	}
 
 	jobPods := []corev1.Pod{}
@@ -75,7 +76,9 @@ func DeleteJobs(clientset *kubernetes.Clientset, dryRun bool, namespace string, 
 		if !dryRun {
 			if err := clientset.BatchV1().Jobs(job.Namespace).Delete(job.Name, &metav1.DeleteOptions{}); err != nil {
 				log.Errorf("failed to delete Job: %v", err)
+				continue
 			}
+			count++
 		}
 
 		for _, pod := range jobPods {
@@ -83,9 +86,11 @@ func DeleteJobs(clientset *kubernetes.Clientset, dryRun bool, namespace string, 
 			if !dryRun {
 				if err := clientset.Core().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}); err != nil {
 					log.Errorf("failed to delete Pod: %v", err)
+					continue
 				}
+				count++
 			}
 		}
 	}
-	return nil
+	return count, nil
 }
