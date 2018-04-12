@@ -52,5 +52,8 @@ docker-clean:
 	docker image rm $(DOCKER_IMG)
 
 
+multiarch-setup:
+	docker run --rm --privileged multiarch/qemu-user-static:register
+	dpkg -l qemu-user-static
 
 .PHONY: all build lint test clean docker-build docker-push docker-clean

@@ -1,7 +1,16 @@
-language: bash
+language: go
 
 os:
   - linux
+
+go:
+  # NB: order matters - matrix items that don't specify will use the
+  # first value (ditto for `os` below)
+  - 1.9.x
+
+os:
+  - linux
+  - osx
 
 services:
   - docker
