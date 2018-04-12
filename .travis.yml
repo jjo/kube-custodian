@@ -22,16 +22,19 @@ env:
 
 before_install: # update to 17.09 to get COPY --from (multistage builds)
   - |
-    [[ "$TRAVIS_OS_NAME" == "linux" ]] || exit 0
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) edge"
-    sudo apt-get update
-    sudo apt-get -y install docker-ce
-    sudo apt-get -y install qemu-user-static
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+      sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) edge"
+      sudo apt-get update
+      sudo apt-get -y install docker-ce
+      sudo apt-get -y install qemu-user-static
+    fi
 
 script:
   - |
-    make build test
+    go get github.com/Masterminds/glide
+    make build
+    make test
     [[ "$TRAVIS_OS_NAME" == "linux" ]] || exit 0
     make multiarch-setup
     for arch in ${ARCHS:?}; do
