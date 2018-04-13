@@ -51,7 +51,7 @@ func Test_DeletePodsCond(t *testing.T) {
 		},
 	}
 	// The only condition *always* checked is skipping "system" Pods
-	SetSystemNS("")
+	SetSkipNSRe("")
 	clientset := fake.NewSimpleClientset(obj)
 	count, err := DeletePodsCond(clientset, false, "",
 		func(pod *corev1.Pod) bool {
@@ -70,7 +70,7 @@ func Test_DeletePodsCond(t *testing.T) {
 	assertEqual(t, count, 1)
 
 	// Change system NS to whatever, we should get them all
-	SetSystemNS("sYsTEM")
+	SetSkipNSRe("sYsTEM")
 	clientset = fake.NewSimpleClientset(obj)
 	// The only condition always present is skipping "system" Pods
 	count, err = DeletePodsCond(clientset, false, "",

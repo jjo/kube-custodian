@@ -11,7 +11,7 @@ import (
 )
 
 // DeleteDeployments ...
-func DeleteDeployments(clientset kubernetes.Interface, dryRun bool, namespace string, requiredLabels []string) (int, error) {
+func DeleteDeployments(clientset kubernetes.Interface, dryRun bool, namespace string, excludeLabels []string) (int, error) {
 
 	count := 0
 	deploys, err := clientset.AppsV1().Deployments(namespace).List(metav1.ListOptions{})
@@ -24,12 +24,12 @@ func DeleteDeployments(clientset kubernetes.Interface, dryRun bool, namespace st
 
 	for _, deploy := range deploys.Items {
 		log.Debugf("Deploy %s.%s ...", deploy.Namespace, deploy.Name)
-		if isSystemNS(deploy.Namespace) {
+		if skipNamespace(deploy.Namespace) {
 			log.Debugf("Deploy %q in system NS, skipping", deploy.Name)
 			continue
 		}
 
-		if utils.LabelsSubSet(deploy.Labels, requiredLabels) {
+		if utils.LabelsSubSet(deploy.Labels, excludeLabels) {
 			log.Debugf("Deploy %q has required labels (%v), skipping", deploy.Name, deploy.Labels)
 			continue
 		}

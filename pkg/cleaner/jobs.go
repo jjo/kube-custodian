@@ -28,7 +28,7 @@ func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, e
 	jobArray := make([]batchv1.Job, 0)
 
 	for _, job := range jobs.Items {
-		if isSystemNS(job.Namespace) {
+		if skipNamespace(job.Namespace) {
 			log.Debugf("Job %q in system NS, skipping", job.Name)
 			continue
 		}

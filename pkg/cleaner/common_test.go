@@ -11,5 +11,12 @@ func assertEqual(t *testing.T, a interface{}, b interface{}) {
 }
 
 func Test_SysNS(t *testing.T) {
-	assertEqual(t, isSystemNS("kube-system"), true)
+	SetSkipNSRe("")
+	assertEqual(t, skipNamespace("kube-system"), true)
+	assertEqual(t, skipNamespace("kube-foo"), true)
+	assertEqual(t, skipNamespace("metallb-system"), true)
+	assertEqual(t, skipNamespace("monitoring"), true)
+	assertEqual(t, skipNamespace("bob"), false)
+	SetSkipNSRe("xyz")
+	assertEqual(t, skipNamespace("kube-system"), false)
 }

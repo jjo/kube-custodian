@@ -74,7 +74,7 @@ func Test_DeleteJobs(t *testing.T) {
 			},
 		},
 	}
-	SetSystemNS("")
+	SetSkipNSRe("")
 	// two non system Succeeded Jobs and one Pod
 	clientset := fake.NewSimpleClientset(jobObj, podObj)
 	count, err := DeleteJobs(clientset, false, "", []string{"xxx"})
@@ -94,7 +94,7 @@ func Test_DeleteJobs(t *testing.T) {
 	assertEqual(t, count, 2)
 
 	// 3of4 Jobs Succeeded (+ pod1), as sysNS has been overridden
-	SetSystemNS(".*sYsTEM")
+	SetSkipNSRe(".*sYsTEM")
 	clientset = fake.NewSimpleClientset(jobObj, podObj)
 	count, err = DeleteJobs(clientset, false, "", []string{"xxx"})
 	assertEqual(t, err, nil)

@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	flagRequiredLabels = "required-labels"
-	flagSystemNS       = "sys-namespaces-re"
+	flagSkipLabels      = "skip-labels"
+	flagSkipNamespaceRe = "skip-namespace-re"
 )
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.PersistentFlags().StringSlice(flagRequiredLabels, []string{"created_by"}, "Labels required for resources to be skipped from scanning")
-	deleteCmd.PersistentFlags().String(flagSystemNS, cleaner.SystemNS, "\"system\" namespaces to skip")
+	deleteCmd.PersistentFlags().StringSlice(flagSkipLabels, []string{"created_by"}, "Labels required for resources to be skipped from scanning")
+	deleteCmd.PersistentFlags().String(flagSkipNamespaceRe, cleaner.SkipNSRe, "Regex of namespaces to skip, typically 'system' ones and alike")
 }
 
 var deleteCmd = &cobra.Command{
@@ -23,7 +23,7 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete resources",
 	Run: func(cmd *cobra.Command, args []string) {
 		flags := cmd.Flags()
-		requiredLabels, err := flags.GetStringSlice(flagRequiredLabels)
+		excludeLabels, err := flags.GetStringSlice(flagSkipLabels)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -37,20 +37,20 @@ var deleteCmd = &cobra.Command{
 		}
 		client := NewKubeClient(cmd)
 
-		if len(requiredLabels) < 1 {
+		if len(excludeLabels) < 1 {
 			log.Fatal("At least one required-label is needed")
 		}
-		log.Infof("Required labels: %v ...", requiredLabels)
+		log.Infof("Required labels: %v ...", excludeLabels)
 
-		sysNS, err := flags.GetString(flagSystemNS)
+		skipNSRe, err := flags.GetString(flagSkipNamespaceRe)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		cleaner.SetSystemNS(sysNS)
-		cleaner.DeleteDeployments(client, dryRun, namespace, requiredLabels)
-		cleaner.DeleteStatefulSets(client, dryRun, namespace, requiredLabels)
-		cleaner.DeleteJobs(client, dryRun, namespace, requiredLabels)
-		cleaner.DeletePods(client, dryRun, namespace, requiredLabels)
+		cleaner.SetSkipNSRe(skipNSRe)
+		cleaner.DeleteDeployments(client, dryRun, namespace, excludeLabels)
+		cleaner.DeleteStatefulSets(client, dryRun, namespace, excludeLabels)
+		cleaner.DeleteJobs(client, dryRun, namespace, excludeLabels)
+		cleaner.DeletePods(client, dryRun, namespace, excludeLabels)
 	},
 }

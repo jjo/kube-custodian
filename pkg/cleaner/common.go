@@ -6,24 +6,24 @@ import (
 
 // SystemNS has default "system" namespaces regexp
 const (
-	SystemNS = "kube-.*|.*(-system|monitoring|logging|ingress)"
+	SkipNSRe = "kube-.*|.*(-system|monitoring|logging|ingress)"
 )
 
-var systemRE *regexp.Regexp
+var skipNSRegexp *regexp.Regexp
 
 func init() {
-	SetSystemNS("")
+	SetSkipNSRe("")
 }
 
-func isSystemNS(namespace string) bool {
-	return systemRE.MatchString(namespace)
+func skipNamespace(namespace string) bool {
+	return skipNSRegexp.MatchString(namespace)
 }
 
-// SetSystemNS is used from cmd/delete.go flags
-func SetSystemNS(namespaceRe string) {
+// SetSkipNSRe is used from cmd/delete.go flags
+func SetSkipNSRe(namespaceRe string) {
 	if namespaceRe != "" {
-		systemRE = regexp.MustCompile(namespaceRe)
+		skipNSRegexp = regexp.MustCompile(namespaceRe)
 	} else {
-		systemRE = regexp.MustCompile(SystemNS)
+		skipNSRegexp = regexp.MustCompile(SkipNSRe)
 	}
 }

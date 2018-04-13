@@ -50,7 +50,7 @@ func Test_DeleteStatefulSets(t *testing.T) {
 			},
 		},
 	}
-	SetSystemNS("")
+	SetSkipNSRe("")
 	// All deploys except kube-system's
 	clientset := fake.NewSimpleClientset(obj)
 	count, err := DeleteStatefulSets(clientset, false, "", []string{"xxx"})
@@ -70,7 +70,7 @@ func Test_DeleteStatefulSets(t *testing.T) {
 	assertEqual(t, count, 1)
 
 	// all, as sysNS has been overridden
-	SetSystemNS(".*sYsTEM")
+	SetSkipNSRe(".*sYsTEM")
 	clientset = fake.NewSimpleClientset(obj)
 	count, err = DeleteStatefulSets(clientset, false, "", []string{"xxx"})
 	assertEqual(t, err, nil)

@@ -36,7 +36,7 @@ func DeletePodsCond(clientset kubernetes.Interface, dryRun bool, namespace strin
 
 	for _, pod := range pods.Items {
 		log.Debugf("Pod %s.%s ...", pod.Namespace, pod.Name)
-		if isSystemNS(pod.Namespace) {
+		if skipNamespace(pod.Namespace) {
 			log.Debugf("Pod %q in system NS, skipping", pod.Name)
 			continue
 		}
