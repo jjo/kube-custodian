@@ -33,13 +33,18 @@ func DeletePodsCond(clientset kubernetes.Interface, dryRun bool, namespace strin
 
 	for _, pod := range pods.Items {
 		log.Debugf("Pod %s.%s ...", pod.Namespace, pod.Name)
-		if filterIn(&pod) {
-			podsArray = append(podsArray, pod)
+		if !filterIn(&pod) {
+			continue
 		}
+
+		log.Debugf("Pod %q marked for deletion", pod.Name)
+		podsArray = append(podsArray, pod)
 	}
 
 	dryRunStr := map[bool]string{true: "[dry-run]", false: ""}[dryRun]
 	for _, pod := range podsArray {
+		log.Debugf("Pod %q about to be deleted", pod.Name)
+
 		log.Infof("%s  Deleting Pod %s.%s ...", dryRunStr, pod.Namespace, pod.Name)
 		if !dryRun {
 			if err := clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}); err != nil {

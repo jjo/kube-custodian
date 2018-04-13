@@ -42,7 +42,6 @@ func DeleteDeployments(clientset kubernetes.Interface, dryRun bool, namespace st
 			}
 			count++
 		}
-
 	}
 	return count, nil
 }

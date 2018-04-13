@@ -42,7 +42,6 @@ func DeleteStatefulSets(clientset kubernetes.Interface, dryRun bool, namespace s
 			}
 			count++
 		}
-
 	}
 	return count, nil
 }

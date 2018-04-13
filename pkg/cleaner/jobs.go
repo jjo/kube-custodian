@@ -15,9 +15,9 @@ const (
 
 // DeleteJobs ...
 func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string) (int, error) {
-	jobs, err := clientset.BatchV1().Jobs(namespace).List(metav1.ListOptions{})
 
 	count := 0
+	jobs, err := clientset.BatchV1().Jobs(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("List jobs: %v", err)
 		return count, err
@@ -63,6 +63,5 @@ func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string) (
 		}
 		count += podCount
 	}
-
 	return count, nil
 }
