@@ -10,7 +10,7 @@ import (
 )
 
 func Test_DeleteJobs(t *testing.T) {
-	job_obj := &batchv1.JobList{
+	jobObj := &batchv1.JobList{
 		Items: []batchv1.Job{
 			batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
@@ -58,7 +58,7 @@ func Test_DeleteJobs(t *testing.T) {
 		},
 	}
 
-	pod_obj := &corev1.PodList{
+	podObj := &corev1.PodList{
 		Items: []corev1.Pod{
 			corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
@@ -76,26 +76,26 @@ func Test_DeleteJobs(t *testing.T) {
 	}
 	SetSystemNS("")
 	// two non system Succeeded Jobs and one Pod
-	clientset := fake.NewSimpleClientset(job_obj, pod_obj)
+	clientset := fake.NewSimpleClientset(jobObj, podObj)
 	count, err := DeleteJobs(clientset, false, "", []string{"xxx"})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 3)
 
 	// no one, as the 1st two now have the required label
-	clientset = fake.NewSimpleClientset(job_obj, pod_obj)
+	clientset = fake.NewSimpleClientset(jobObj, podObj)
 	count, err = DeleteJobs(clientset, false, "", []string{"created_by"})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 0)
 
 	// only job1 in ns1 and its pod1
-	clientset = fake.NewSimpleClientset(job_obj, pod_obj)
+	clientset = fake.NewSimpleClientset(jobObj, podObj)
 	count, err = DeleteJobs(clientset, false, "ns1", []string{"xxx"})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 2)
 
 	// 3of4 Jobs Succeeded (+ pod1), as sysNS has been overridden
 	SetSystemNS(".*sYsTEM")
-	clientset = fake.NewSimpleClientset(job_obj, pod_obj)
+	clientset = fake.NewSimpleClientset(jobObj, podObj)
 	count, err = DeleteJobs(clientset, false, "", []string{"xxx"})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 4)

@@ -16,7 +16,7 @@ const (
 )
 
 // DeleteJobs ...
-func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, requiredLabels []string) (int, error) {
+func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, excludeLabels []string) (int, error) {
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(metav1.ListOptions{})
 
 	count := 0
@@ -37,35 +37,13 @@ func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, r
 			continue
 		}
 
-		if utils.LabelsSubSet(job.Labels, requiredLabels) {
-			log.Debugf("Job %q has required labels (%v), skipping", job.Name, job.Labels)
+		if utils.LabelsSubSet(job.Labels, excludeLabels) {
+			log.Debugf("Job %q has exclude labels (%v), skipping", job.Name, job.Labels)
 			continue
 		}
 
-		log.Debugf("Job %q missing required labels, will be marked for deletion", job.Name)
+		log.Debugf("Job %q missing exclude labels, will be marked for deletion", job.Name)
 		jobArray = append(jobArray, job)
-	}
-
-	pods, err := clientset.Core().Pods(namespace).List(metav1.ListOptions{})
-	if err != nil {
-		log.Errorf("List pods: %v", err)
-		return count, err
-	}
-
-	jobPods := []corev1.Pod{}
-
-	for _, pod := range pods.Items {
-		if pod.Labels[kubeJobNameLabel] == "" {
-			continue
-		}
-
-		if !(pod.Status.Phase == corev1.PodSucceeded ||
-			pod.Status.Phase == corev1.PodFailed) {
-			log.Debugf("Pod %q still running, skipping", pod.Name)
-			continue
-		}
-
-		jobPods = append(jobPods, pod)
 	}
 
 	dryRunStr := map[bool]string{true: "[dry-run]", false: ""}[dryRun]
@@ -80,17 +58,19 @@ func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, r
 			}
 			count++
 		}
-
-		for _, pod := range jobPods {
-			log.Infof("%s  Deleting Pod %s.%s ...", dryRunStr, pod.Namespace, pod.Name)
-			if !dryRun {
-				if err := clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}); err != nil {
-					log.Errorf("failed to delete Pod: %v", err)
-					continue
+		podCount, err := DeletePodsCond(clientset, dryRun, job.Namespace,
+			func(pod *corev1.Pod) bool {
+				switch {
+				case pod.Labels[kubeJobNameLabel] == job.Name:
+					return true
 				}
-				count++
-			}
+				return false
+			})
+		if err != nil {
+			log.Errorf("failed to delete Pods from Job %q: %v", job.Name, err)
 		}
+		count += podCount
 	}
+
 	return count, nil
 }

@@ -48,7 +48,9 @@ var deleteCmd = &cobra.Command{
 		}
 
 		cleaner.SetSystemNS(sysNS)
-		cleaner.DeleteJobs(client, dryRun, namespace, requiredLabels)
 		cleaner.DeleteDeployments(client, dryRun, namespace, requiredLabels)
+		cleaner.DeleteStatefulSets(client, dryRun, namespace, requiredLabels)
+		cleaner.DeleteJobs(client, dryRun, namespace, requiredLabels)
+		cleaner.DeletePods(client, dryRun, namespace, requiredLabels)
 	},
 }

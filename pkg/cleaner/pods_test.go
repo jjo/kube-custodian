@@ -3,46 +3,46 @@ package cleaner
 import (
 	"testing"
 
-	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func Test_DeleteDeployments(t *testing.T) {
-	obj := &appsv1.DeploymentList{
-		Items: []appsv1.Deployment{
-			appsv1.Deployment{
+func Test_DeletePodsCond(t *testing.T) {
+	obj := &corev1.PodList{
+		Items: []corev1.Pod{
+			corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dp1",
+					Name:      "pod1",
 					Namespace: "ns1",
 					Labels: map[string]string{
 						"created_by": "bar",
 					},
 				},
 			},
-			appsv1.Deployment{
+			corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dp2",
+					Name:      "pod2",
 					Namespace: "ns2",
 					Labels: map[string]string{
 						"created_by": "foo",
 					},
 				},
 			},
-			appsv1.Deployment{
+			corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dp3",
+					Name:      "pod3",
 					Namespace: "ns3",
 				},
 			},
 			// sysNS will be skipped:
-			appsv1.Deployment{
+			corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kubernetes-dashboard",
+					Name:      "kubernetes-dashboard-deadbeefed-quack",
 					Namespace: "kube-system",
 				},
 			},
-			appsv1.Deployment{
+			corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "prometheus",
 					Namespace: "monitoring",
@@ -50,29 +50,30 @@ func Test_DeleteDeployments(t *testing.T) {
 			},
 		},
 	}
+	// The only condition *always* checked is skipping "system" Pods
 	SetSystemNS("")
-	// All deploys except kube-system's
 	clientset := fake.NewSimpleClientset(obj)
-	count, err := DeleteDeployments(clientset, false, "", []string{"xxx"})
+	count, err := DeletePodsCond(clientset, false, "", func(pod *corev1.Pod) bool {
+		return true
+	})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 3)
 
-	// only one, as the 1st two have the required label
+	// Select a single pod
 	clientset = fake.NewSimpleClientset(obj)
-	count, err = DeleteDeployments(clientset, false, "", []string{"created_by"})
+	count, err = DeletePodsCond(clientset, false, "", func(pod *corev1.Pod) bool {
+		return pod.Labels["created_by"] == "foo"
+	})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
-	// only one in ns1
+	// Change system NS to whatever, we should get them all
+	SetSystemNS("sYsTEM")
 	clientset = fake.NewSimpleClientset(obj)
-	count, err = DeleteDeployments(clientset, false, "ns1", []string{"xxx"})
-	assertEqual(t, err, nil)
-	assertEqual(t, count, 1)
-
-	// all, as sysNS has been overridden
-	SetSystemNS(".*sYsTEM")
-	clientset = fake.NewSimpleClientset(obj)
-	count, err = DeleteDeployments(clientset, false, "", []string{"xxx"})
+	// The only condition always present is skipping "system" Pods
+	count, err = DeletePodsCond(clientset, false, "", func(pod *corev1.Pod) bool {
+		return true
+	})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 5)
 
