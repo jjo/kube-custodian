@@ -38,7 +38,7 @@ script:
     [[ "$TRAVIS_OS_NAME" == "linux" ]] || exit 0
     make multiarch-setup
     for arch in ${ARCHS:?}; do
-      make docker-build GOARCH=${arch}
+      make docker-build GOARCH=${arch} VERSION=${TRAVIS_BRANCH}
     done
 
 after_success:
@@ -48,6 +48,6 @@ after_success:
           "$TRAVIS_PULL_REQUEST" == false ]]; then
       docker login -u="${DOCKER_USERNAME:?}" -p="${DOCKER_PASSWORD:?}";
       for arch in ${ARCHS:?}; do
-        make docker-push GOARCH=${arch}
+        make docker-push GOARCH=${arch} VERSION=${TRAVIS_BRANCH}
       done
     fi
