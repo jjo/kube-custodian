@@ -6,16 +6,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	utils "github.com/jjo/kube-custodian/pkg/utils"
 )
 
 // DeletePods is main entry point from cmd/delete.go
-func DeletePods(clientset kubernetes.Interface, dryRun bool, namespace string, excludeLabels []string) (int, error) {
+func DeletePods(clientset kubernetes.Interface, dryRun bool, namespace string) (int, error) {
 	return DeletePodsCond(clientset, dryRun, namespace,
 		func(pod *corev1.Pod) bool {
-			if utils.LabelsSubSet(pod.Labels, excludeLabels) {
-				log.Debugf("Pod %q has exclude labels (%v), skipping", pod.Name, pod.Labels)
+			if skipFromMeta(&pod.ObjectMeta) {
 				return false
 			}
 			return true
@@ -36,10 +33,6 @@ func DeletePodsCond(clientset kubernetes.Interface, dryRun bool, namespace strin
 
 	for _, pod := range pods.Items {
 		log.Debugf("Pod %s.%s ...", pod.Namespace, pod.Name)
-		if skipNamespace(pod.Namespace) {
-			log.Debugf("Pod %q in system NS, skipping", pod.Name)
-			continue
-		}
 		if filterIn(&pod) {
 			podsArray = append(podsArray, pod)
 		}

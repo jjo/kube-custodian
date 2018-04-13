@@ -50,30 +50,30 @@ func Test_DeleteStatefulSets(t *testing.T) {
 			},
 		},
 	}
-	SetSkipNSRe("")
-	// All deploys except kube-system's
+	t.Logf("Should delete all sts except those in kube-system and monitoring NS")
+	SetSkipMeta("", []string{"xxx"})
 	clientset := fake.NewSimpleClientset(obj)
-	count, err := DeleteStatefulSets(clientset, false, "", []string{"xxx"})
+	count, err := DeleteStatefulSets(clientset, false, "")
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 3)
 
-	// only one, as the 1st two have the required label
+	t.Logf("Should delete only sts in ns1")
 	clientset = fake.NewSimpleClientset(obj)
-	count, err = DeleteStatefulSets(clientset, false, "", []string{"created_by"})
+	count, err = DeleteStatefulSets(clientset, false, "ns1")
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
-	// only one in ns1
+	t.Logf("Should delete only one sts, as the other two candidates have the 'created_by' label")
+	SetSkipMeta("", nil)
 	clientset = fake.NewSimpleClientset(obj)
-	count, err = DeleteStatefulSets(clientset, false, "ns1", []string{"xxx"})
+	count, err = DeleteStatefulSets(clientset, false, "")
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
-	// all, as sysNS has been overridden
-	SetSkipNSRe(".*sYsTEM")
+	t.Logf("Should delete all sts, as namespaceRE and skipLabels don't match any")
+	SetSkipMeta(".*sYsTEM", []string{"xxx"})
 	clientset = fake.NewSimpleClientset(obj)
-	count, err = DeleteStatefulSets(clientset, false, "", []string{"xxx"})
+	count, err = DeleteStatefulSets(clientset, false, "")
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 5)
-
 }

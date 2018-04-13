@@ -35,7 +35,6 @@ func Test_DeletePodsCond(t *testing.T) {
 					Namespace: "ns3",
 				},
 			},
-			// sysNS will be skipped:
 			corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "kubernetes-dashboard-deadbeefed-quack",
@@ -50,17 +49,17 @@ func Test_DeletePodsCond(t *testing.T) {
 			},
 		},
 	}
-	// The only condition *always* checked is skipping "system" Pods
-	SetSkipNSRe("")
+	t.Logf("Should delete all pods")
+	SetSkipMeta("", nil)
 	clientset := fake.NewSimpleClientset(obj)
 	count, err := DeletePodsCond(clientset, false, "",
 		func(pod *corev1.Pod) bool {
 			return true
 		})
 	assertEqual(t, err, nil)
-	assertEqual(t, count, 3)
+	assertEqual(t, count, 5)
 
-	// filterIn() a single pod
+	t.Logf("Should delete a single filterIn() Pod")
 	clientset = fake.NewSimpleClientset(obj)
 	count, err = DeletePodsCond(clientset, false, "",
 		func(pod *corev1.Pod) bool {
@@ -69,15 +68,14 @@ func Test_DeletePodsCond(t *testing.T) {
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
-	// Change system NS to whatever, we should get them all
-	SetSkipNSRe("sYsTEM")
+	t.Logf("Should not delete any pods")
+	SetSkipMeta("", nil)
 	clientset = fake.NewSimpleClientset(obj)
-	// The only condition always present is skipping "system" Pods
 	count, err = DeletePodsCond(clientset, false, "",
 		func(pod *corev1.Pod) bool {
-			return true
+			return false
 		})
 	assertEqual(t, err, nil)
-	assertEqual(t, count, 5)
+	assertEqual(t, count, 0)
 
 }

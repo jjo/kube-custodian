@@ -14,8 +14,8 @@ const (
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.PersistentFlags().StringSlice(flagSkipLabels, []string{"created_by"}, "Labels required for resources to be skipped from scanning")
-	deleteCmd.PersistentFlags().String(flagSkipNamespaceRe, cleaner.SkipNSRe, "Regex of namespaces to skip, typically 'system' ones and alike")
+	deleteCmd.PersistentFlags().StringSlice(flagSkipLabels, cleaner.SkipMetaDefault.Labels, "Labels required for resources to be skipped from scanning")
+	deleteCmd.PersistentFlags().String(flagSkipNamespaceRe, cleaner.SkipMetaDefault.NamespaceRE, "Regex of namespaces to skip, typically 'system' ones and alike")
 }
 
 var deleteCmd = &cobra.Command{
@@ -23,7 +23,7 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete resources",
 	Run: func(cmd *cobra.Command, args []string) {
 		flags := cmd.Flags()
-		excludeLabels, err := flags.GetStringSlice(flagSkipLabels)
+		skipLabels, err := flags.GetStringSlice(flagSkipLabels)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -37,20 +37,20 @@ var deleteCmd = &cobra.Command{
 		}
 		client := NewKubeClient(cmd)
 
-		if len(excludeLabels) < 1 {
-			log.Fatal("At least one required-label is needed")
+		if len(skipLabels) < 1 {
+			log.Fatal("At least one skip-labels is needed")
 		}
-		log.Infof("Required labels: %v ...", excludeLabels)
+		log.Infof("Required labels: %v ...", skipLabels)
 
 		skipNSRe, err := flags.GetString(flagSkipNamespaceRe)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		cleaner.SetSkipNSRe(skipNSRe)
-		cleaner.DeleteDeployments(client, dryRun, namespace, excludeLabels)
-		cleaner.DeleteStatefulSets(client, dryRun, namespace, excludeLabels)
-		cleaner.DeleteJobs(client, dryRun, namespace, excludeLabels)
-		cleaner.DeletePods(client, dryRun, namespace, excludeLabels)
+		cleaner.SetSkipMeta(skipNSRe, skipLabels)
+		cleaner.DeleteDeployments(client, dryRun, namespace)
+		cleaner.DeleteStatefulSets(client, dryRun, namespace)
+		cleaner.DeleteJobs(client, dryRun, namespace)
+		cleaner.DeletePods(client, dryRun, namespace)
 	},
 }

@@ -6,12 +6,10 @@ import (
 	"k8s.io/api/apps/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	utils "github.com/jjo/kube-custodian/pkg/utils"
 )
 
 // DeleteStatefulSets ...
-func DeleteStatefulSets(clientset kubernetes.Interface, dryRun bool, namespace string, excludeLabels []string) (int, error) {
+func DeleteStatefulSets(clientset kubernetes.Interface, dryRun bool, namespace string) (int, error) {
 
 	count := 0
 	stss, err := clientset.AppsV1beta1().StatefulSets(namespace).List(metav1.ListOptions{})
@@ -24,17 +22,11 @@ func DeleteStatefulSets(clientset kubernetes.Interface, dryRun bool, namespace s
 
 	for _, sts := range stss.Items {
 		log.Debugf("StatefulSet %s.%s ...", sts.Namespace, sts.Name)
-		if skipNamespace(sts.Namespace) {
-			log.Debugf("StatefulSet %q in system NS, skipping", sts.Name)
+		if skipFromMeta(&sts.ObjectMeta) {
 			continue
 		}
 
-		if utils.LabelsSubSet(sts.Labels, excludeLabels) {
-			log.Debugf("StatefulSet %q has required labels (%v), skipping", sts.Name, sts.Labels)
-			continue
-		}
-
-		log.Debugf("StatefulSet %q missing required labels, will be marked for deletion", sts.Name)
+		log.Debugf("StatefulSet %q marked for deletion", sts.Name)
 		stsArray = append(stsArray, sts)
 	}
 

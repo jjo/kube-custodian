@@ -7,8 +7,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	utils "github.com/jjo/kube-custodian/pkg/utils"
 )
 
 const (
@@ -16,7 +14,7 @@ const (
 )
 
 // DeleteJobs ...
-func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, excludeLabels []string) (int, error) {
+func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string) (int, error) {
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(metav1.ListOptions{})
 
 	count := 0
@@ -28,8 +26,7 @@ func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, e
 	jobArray := make([]batchv1.Job, 0)
 
 	for _, job := range jobs.Items {
-		if skipNamespace(job.Namespace) {
-			log.Debugf("Job %q in system NS, skipping", job.Name)
+		if skipFromMeta(&job.ObjectMeta) {
 			continue
 		}
 		if job.Status.Succeeded == 0 {
@@ -37,12 +34,7 @@ func DeleteJobs(clientset kubernetes.Interface, dryRun bool, namespace string, e
 			continue
 		}
 
-		if utils.LabelsSubSet(job.Labels, excludeLabels) {
-			log.Debugf("Job %q has exclude labels (%v), skipping", job.Name, job.Labels)
-			continue
-		}
-
-		log.Debugf("Job %q missing exclude labels, will be marked for deletion", job.Name)
+		log.Debugf("Job %q marked for deletion", job.Name)
 		jobArray = append(jobArray, job)
 	}
 
