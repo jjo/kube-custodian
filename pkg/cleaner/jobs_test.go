@@ -9,12 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func assertEqual(t *testing.T, a interface{}, b interface{}) {
-	if a != b {
-		t.Fatalf("%v != %v", a, b)
-	}
-}
-
 func Test_DeleteJobs(t *testing.T) {
 	job_obj := &batchv1.JobList{
 		Items: []batchv1.Job{
