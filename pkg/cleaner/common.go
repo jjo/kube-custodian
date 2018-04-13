@@ -12,7 +12,7 @@ const (
 var systemRE *regexp.Regexp
 
 func init() {
-	systemRE = regexp.MustCompile(SystemNS)
+	SetSystemNS("")
 }
 
 func isSystemNS(namespace string) bool {
@@ -21,5 +21,9 @@ func isSystemNS(namespace string) bool {
 
 // SetSystemNS is used from cmd/delete.go flags
 func SetSystemNS(namespaceRe string) {
-	systemRE = regexp.MustCompile(namespaceRe)
+	if namespaceRe != "" {
+		systemRE = regexp.MustCompile(namespaceRe)
+	} else {
+		systemRE = regexp.MustCompile(SystemNS)
+	}
 }
