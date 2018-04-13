@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -15,7 +16,7 @@ func assertEqual(t *testing.T, a interface{}, b interface{}) {
 }
 
 func Test_DeleteJobs(t *testing.T) {
-	obj := &batchv1.JobList{
+	job_obj := &batchv1.JobList{
 		Items: []batchv1.Job{
 			batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
@@ -62,30 +63,47 @@ func Test_DeleteJobs(t *testing.T) {
 			},
 		},
 	}
+
+	pod_obj := &corev1.PodList{
+		Items: []corev1.Pod{
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod1",
+					Namespace: "ns1",
+					Labels: map[string]string{
+						kubeJobNameLabel: "job1",
+					},
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodSucceeded,
+				},
+			},
+		},
+	}
 	SetSystemNS("")
-	// 2of4 non system Jobs Succeeded
-	clientset := fake.NewSimpleClientset(obj)
+	// two non system Succeeded Jobs and one Pod
+	clientset := fake.NewSimpleClientset(job_obj, pod_obj)
 	count, err := DeleteJobs(clientset, false, "", []string{"xxx"})
 	assertEqual(t, err, nil)
-	assertEqual(t, count, 2)
+	assertEqual(t, count, 3)
 
 	// no one, as the 1st two now have the required label
-	clientset = fake.NewSimpleClientset(obj)
+	clientset = fake.NewSimpleClientset(job_obj, pod_obj)
 	count, err = DeleteJobs(clientset, false, "", []string{"created_by"})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 0)
 
-	// only one in ns1
-	clientset = fake.NewSimpleClientset(obj)
+	// only job1 in ns1 and its pod1
+	clientset = fake.NewSimpleClientset(job_obj, pod_obj)
 	count, err = DeleteJobs(clientset, false, "ns1", []string{"xxx"})
 	assertEqual(t, err, nil)
-	assertEqual(t, count, 1)
+	assertEqual(t, count, 2)
 
-	// 3of4 Jobs Succeeded, as sysNS has been overridden
+	// 3of4 Jobs Succeeded (+ pod1), as sysNS has been overridden
 	SetSystemNS(".*sYsTEM")
-	clientset = fake.NewSimpleClientset(obj)
+	clientset = fake.NewSimpleClientset(job_obj, pod_obj)
 	count, err = DeleteJobs(clientset, false, "", []string{"xxx"})
 	assertEqual(t, err, nil)
-	assertEqual(t, count, 3)
+	assertEqual(t, count, 4)
 
 }

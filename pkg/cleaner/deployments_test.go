@@ -35,11 +35,17 @@ func Test_DeleteDeployments(t *testing.T) {
 					Namespace: "ns3",
 				},
 			},
-			// will be skipped from its .*-system namespace
+			// sysNS will be skipped:
 			appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dp4",
+					Name:      "kube-proxy",
 					Namespace: "kube-system",
+				},
+			},
+			appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "prometheus",
+					Namespace: "monitoring",
 				},
 			},
 		},
@@ -57,17 +63,17 @@ func Test_DeleteDeployments(t *testing.T) {
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
-	// only 1of4 in ns1
+	// only one in ns1
 	clientset = fake.NewSimpleClientset(obj)
 	count, err = DeleteDeployments(clientset, false, "ns1", []string{"xxx"})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
-	// 4of4 deleted, as sysNS has been overridden
+	// all, as sysNS has been overridden
 	SetSystemNS(".*sYsTEM")
 	clientset = fake.NewSimpleClientset(obj)
 	count, err = DeleteDeployments(clientset, false, "", []string{"xxx"})
 	assertEqual(t, err, nil)
-	assertEqual(t, count, 4)
+	assertEqual(t, count, 5)
 
 }

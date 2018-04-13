@@ -6,7 +6,7 @@ import (
 
 // SystemNS has default "system" namespaces regexp
 const (
-	SystemNS = ".*(-system|monitoring|logging|ingress)"
+	SystemNS = "kube-.*|.*(-system|monitoring|logging|ingress)"
 )
 
 var systemRE *regexp.Regexp
