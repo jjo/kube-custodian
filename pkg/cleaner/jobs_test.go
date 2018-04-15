@@ -12,7 +12,7 @@ import (
 func Test_DeleteJobs(t *testing.T) {
 	jobObj := &batchv1.JobList{
 		Items: []batchv1.Job{
-			batchv1.Job{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "job1",
 					Namespace: "ns1",
@@ -24,7 +24,7 @@ func Test_DeleteJobs(t *testing.T) {
 					Succeeded: 1,
 				},
 			},
-			batchv1.Job{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "job2",
 					Namespace: "ns2",
@@ -36,7 +36,7 @@ func Test_DeleteJobs(t *testing.T) {
 					Succeeded: 1,
 				},
 			},
-			batchv1.Job{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "job3",
 					Namespace: "ns3",
@@ -45,7 +45,7 @@ func Test_DeleteJobs(t *testing.T) {
 					Succeeded: 0,
 				},
 			},
-			batchv1.Job{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "job4",
 					Namespace: "kube-system",
@@ -59,7 +59,7 @@ func Test_DeleteJobs(t *testing.T) {
 
 	podObj := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod1",
 					Namespace: "ns1",
@@ -73,31 +73,46 @@ func Test_DeleteJobs(t *testing.T) {
 			},
 		},
 	}
+	var c *Common
+
 	t.Logf("Should delete all jobs except those in kube-system and monitoring NS")
-	SetSkipMeta("", []string{"xxx"})
-	clientset := fake.NewSimpleClientset(jobObj, podObj)
-	count, err := DeleteJobs(clientset, false, "")
+	c = &Common{
+		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
+		SkipLabels:      []string{"xxx"},
+	}
+	c.Init(fake.NewSimpleClientset(jobObj, podObj))
+	count, err := c.DeleteJobs()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 3)
 
 	t.Logf("Should delete only the jobs in ns1 and its pod")
-	clientset = fake.NewSimpleClientset(jobObj, podObj)
-	count, err = DeleteJobs(clientset, false, "ns1")
+	c = &Common{
+		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
+		SkipLabels:      []string{"xxx"},
+		Namespace:       "ns1",
+	}
+	c.Init(fake.NewSimpleClientset(jobObj, podObj))
+	count, err = c.DeleteJobs()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 2)
 
-	SetSkipMeta("", nil)
 	t.Logf("Should not delete any, as the first two have the required label")
-	clientset = fake.NewSimpleClientset(jobObj, podObj)
-	count, err = DeleteJobs(clientset, false, "")
+	c = &Common{
+		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
+		SkipLabels:      CommonDefaults.SkipLabels,
+	}
+	c.Init(fake.NewSimpleClientset(jobObj, podObj))
+	count, err = c.DeleteJobs()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 0)
 
 	t.Logf("Should delete all jobs, as namespaceRE and skipLabels don't match any")
-	SetSkipMeta(".*sYsTEM", []string{"xxx"})
-	clientset = fake.NewSimpleClientset(jobObj, podObj)
-	count, err = DeleteJobs(clientset, false, "")
+	c = &Common{
+		SkipNamespaceRE: ".*sYsTEM",
+		SkipLabels:      []string{"xxx"},
+	}
+	c.Init(fake.NewSimpleClientset(jobObj, podObj))
+	count, err = c.DeleteJobs()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 4)
-
 }

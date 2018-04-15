@@ -10,47 +10,53 @@ import (
 const (
 	flagSkipLabels      = "skip-labels"
 	flagSkipNamespaceRe = "skip-namespace-re"
+	flagTagForDeletion  = "tag-for-deletion"
+	flagTagCleanup      = "tag-cleanup"
+	flagTagTTL          = "tag-ttl"
+	flagDeleteTagged    = "delete-tagged"
 )
 
 func init() {
-	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.PersistentFlags().StringSlice(flagSkipLabels, cleaner.SkipMetaDefault.Labels, "Labels required for resources to be skipped from scanning")
-	deleteCmd.PersistentFlags().String(flagSkipNamespaceRe, cleaner.SkipMetaDefault.NamespaceRE, "Regex of namespaces to skip, typically 'system' ones and alike")
+	rootCmd.AddCommand(runCmd)
+	runCmd.PersistentFlags().StringSlice(flagSkipLabels, cleaner.CommonDefaults.SkipLabels, "Labels required for resources to be skipped from scanning")
+	runCmd.PersistentFlags().String(flagSkipNamespaceRe, cleaner.CommonDefaults.SkipNamespaceRE, "Regex of namespaces to skip, typically 'system' ones and alike")
+	runCmd.PersistentFlags().Bool(flagTagForDeletion, true, "Tag resources for later deletion")
+	runCmd.PersistentFlags().Bool(flagTagCleanup, false, "Untag resources from later deletion")
+	runCmd.PersistentFlags().String(flagTagTTL, "24h", "Time to live after marked, before deletion")
+	runCmd.PersistentFlags().Bool(flagDeleteTagged, true, "Delete tagged resources, after their Tag TTL has passed")
 }
 
-var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Delete resources",
+var runCmd = &cobra.Command{
+	Use:   "run",
+	Short: "Scan Kubernetes objects, mark for deletion (via annotation), delete those already \"expired\"",
 	Run: func(cmd *cobra.Command, args []string) {
+		var err error
 		flags := cmd.Flags()
-		skipLabels, err := flags.GetStringSlice(flagSkipLabels)
-		if err != nil {
-			log.Fatal(err)
-		}
-		namespace, err := flags.GetString("namespace")
-		if err != nil {
-			log.Fatal(err)
-		}
-		dryRun, err := flags.GetBool(flagDryRun)
-		if err != nil {
-			log.Fatal(err)
-		}
-		client := NewKubeClient(cmd)
+		c := cleaner.Common{}
 
-		if len(skipLabels) < 1 {
+		c.SkipLabels, err = flags.GetStringSlice(flagSkipLabels)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.Namespace, err = flags.GetString("namespace")
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.DryRun, err = flags.GetBool(flagDryRun)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if len(c.SkipLabels) < 1 {
 			log.Fatal("At least one skip-labels is needed")
 		}
-		log.Infof("Required labels: %v ...", skipLabels)
+		log.Debugf("Skipped workloads with labels: %v ...", c.SkipLabels)
 
-		skipNSRe, err := flags.GetString(flagSkipNamespaceRe)
+		c.SkipNamespaceRE, err = flags.GetString(flagSkipNamespaceRe)
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		cleaner.SetSkipMeta(skipNSRe, skipLabels)
-		cleaner.DeleteDeployments(client, dryRun, namespace)
-		cleaner.DeleteStatefulSets(client, dryRun, namespace)
-		cleaner.DeleteJobs(client, dryRun, namespace)
-		cleaner.DeletePods(client, dryRun, namespace)
+		c.Init(NewKubeClient(cmd))
+		c.Run()
 	},
 }

@@ -5,14 +5,14 @@ import (
 
 	"k8s.io/api/apps/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	// "k8s.io/client-go/kubernetes"
 )
 
 // DeleteStatefulSets ...
-func DeleteStatefulSets(clientset kubernetes.Interface, dryRun bool, namespace string) (int, error) {
+func (c *Common) DeleteStatefulSets() (int, error) {
 
 	count := 0
-	stss, err := clientset.AppsV1beta1().StatefulSets(namespace).List(metav1.ListOptions{})
+	stss, err := c.clientset.AppsV1beta1().StatefulSets(c.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("List StatefulSets: %v", err)
 		return count, err
@@ -22,7 +22,7 @@ func DeleteStatefulSets(clientset kubernetes.Interface, dryRun bool, namespace s
 
 	for _, sts := range stss.Items {
 		log.Debugf("StatefulSet %s.%s ...", sts.Namespace, sts.Name)
-		if skipFromMeta(&sts.ObjectMeta) {
+		if c.skipFromMeta(&sts.ObjectMeta) {
 			continue
 		}
 
@@ -30,13 +30,12 @@ func DeleteStatefulSets(clientset kubernetes.Interface, dryRun bool, namespace s
 		stsArray = append(stsArray, sts)
 	}
 
-	dryRunStr := map[bool]string{true: "[dry-run]", false: ""}[dryRun]
 	for _, sts := range stsArray {
 		log.Debugf("StatefulSet %q about to be deleted", sts.Name)
 
-		log.Infof("%sDeleting StatefulSet %s.%s ... ", dryRunStr, sts.Namespace, sts.Name)
-		if !dryRun {
-			if err := clientset.AppsV1beta1().StatefulSets(sts.Namespace).Delete(sts.Name, &metav1.DeleteOptions{}); err != nil {
+		log.Infof("%sDeleting StatefulSet %s.%s ... ", c.dryRunStr, sts.Namespace, sts.Name)
+		if !c.DryRun {
+			if err := c.clientset.AppsV1beta1().StatefulSets(sts.Namespace).Delete(sts.Name, &metav1.DeleteOptions{}); err != nil {
 				log.Errorf("failed to delete StatefulSet: %v", err)
 				continue
 			}
