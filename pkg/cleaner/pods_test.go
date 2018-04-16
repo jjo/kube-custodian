@@ -80,5 +80,4 @@ func Test_DeletePodsCond(t *testing.T) {
 		})
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 0)
-
 }

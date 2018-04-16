@@ -13,6 +13,8 @@ import (
 	utils "github.com/jjo/kube-custodian/pkg/utils"
 )
 
+// Common represents flags set from cmd/, conversion of these
+// into more convenient type(s), and runtime clientset
 type Common struct {
 	DryRun          bool
 	Namespace       string
@@ -20,24 +22,27 @@ type Common struct {
 	SkipLabels      []string
 	TagTTL          string
 
-	clientset kubernetes.Interface
-
 	skipNamespaceRegexp *regexp.Regexp
 	timeStamp           int64
 	tagTTL              int64
 	dryRunStr           string
+
+	clientset kubernetes.Interface
 }
 
-const (
-	kubeCustodianAnnotationTime = "kube-custodian.bitnami.com/expiration-time"
-)
-
+// CommonDefaults has opinionated default values for Common
 var CommonDefaults = &Common{
 	SkipNamespaceRE: "kube-.*|.*(-system|monitoring|logging|ingress)",
 	SkipLabels:      []string{"created_by"},
 	TagTTL:          "24h",
 }
 
+const (
+	kubeCustodianAnnotationTime = "kube-custodian.bitnami.com/expiration-time"
+)
+
+// Init initializes Common obj with ready-to-use values,
+// must be called by callers before Run()
 func (c *Common) Init(clientset kubernetes.Interface) {
 	var err error
 	c.skipNamespaceRegexp = regexp.MustCompile(c.SkipNamespaceRE)
@@ -51,6 +56,7 @@ func (c *Common) Init(clientset kubernetes.Interface) {
 	c.clientset = clientset
 }
 
+// Run is main entry point for this package
 func (c Common) Run() {
 	c.DeleteDeployments()
 	c.DeleteStatefulSets()

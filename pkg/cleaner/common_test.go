@@ -15,6 +15,7 @@ func Test_SkipMeta(t *testing.T) {
 	var c Common
 	c = *CommonDefaults
 	c.Init(nil)
+	t.Logf("Should skip all resources in 'system' namespaces")
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "kube-system"}), true)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "kube-foo"}), true)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "foo-system"}), true)
@@ -23,5 +24,6 @@ func Test_SkipMeta(t *testing.T) {
 	c = *CommonDefaults
 	c.SkipNamespaceRE = "xyz"
 	c.Init(nil)
+	t.Logf("Should match resources from changed --skip-namespace-re")
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "kube-system"}), false)
 }
