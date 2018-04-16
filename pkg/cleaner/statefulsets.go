@@ -7,12 +7,11 @@ import (
 )
 
 type stsUpdater struct {
-	sts  v1beta1.StatefulSet
-	meta metav1.ObjectMeta
+	sts *v1beta1.StatefulSet
 }
 
 func (u *stsUpdater) Update(c *Common) error {
-	_, err := c.clientset.AppsV1beta1().StatefulSets(u.sts.Namespace).Update(&u.sts)
+	_, err := c.clientset.AppsV1beta1().StatefulSets(u.sts.Namespace).Update(u.sts)
 	return err
 }
 
@@ -24,14 +23,14 @@ func (u *stsUpdater) Meta() *metav1.ObjectMeta {
 	return &u.sts.ObjectMeta
 }
 
-// DeleteStatefulSets ...
-func (c *Common) DeleteStatefulSets() (int, error) {
-
-	count := 0
+// updateStatefulSets ...
+func (c *Common) updateStatefulSets() (int, int, error) {
+	updatedCount := 0
+	deletedCount := 0
 	stss, err := c.clientset.AppsV1beta1().StatefulSets(c.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("List StatefulSets: %v", err)
-		return count, err
+		return updatedCount, deletedCount, err
 	}
 
 	for _, sts := range stss.Items {
@@ -42,7 +41,9 @@ func (c *Common) DeleteStatefulSets() (int, error) {
 
 		log.Debugf("StatefulSet %s.%s about to be touched ...", sts.Namespace, sts.Name)
 
-		count += c.updateState(&stsUpdater{sts: sts})
+		updCnt, delCnt := c.updateState(&stsUpdater{sts: &sts})
+		updatedCount += updCnt
+		deletedCount += delCnt
 	}
-	return count, nil
+	return updatedCount, deletedCount, nil
 }

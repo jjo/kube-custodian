@@ -7,11 +7,11 @@ import (
 )
 
 type deployUpdater struct {
-	deploy appsv1.Deployment
+	deploy *appsv1.Deployment
 }
 
 func (u *deployUpdater) Update(c *Common) error {
-	_, err := c.clientset.AppsV1().Deployments(u.deploy.Namespace).Update(&u.deploy)
+	_, err := c.clientset.AppsV1().Deployments(u.deploy.Namespace).Update(u.deploy)
 	return err
 }
 
@@ -23,13 +23,14 @@ func (u *deployUpdater) Meta() *metav1.ObjectMeta {
 	return &u.deploy.ObjectMeta
 }
 
-// DeleteDeployments ...
-func (c *Common) DeleteDeployments() (int, error) {
-	count := 0
+// updateDeployments ...
+func (c *Common) updateDeployments() (int, int, error) {
+	updatedCount := 0
+	deletedCount := 0
 	deploys, err := c.clientset.AppsV1().Deployments(c.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("List deploys: %v", err)
-		return count, err
+		return updatedCount, deletedCount, err
 	}
 
 	for _, deploy := range deploys.Items {
@@ -39,7 +40,9 @@ func (c *Common) DeleteDeployments() (int, error) {
 		}
 
 		log.Debugf("Deploy %s.%s about to be touched ...", deploy.Namespace, deploy.Name)
-		count += c.updateState(&deployUpdater{deploy: deploy})
+		updCnt, delCnt := c.updateState(&deployUpdater{deploy: &deploy})
+		updatedCount += updCnt
+		deletedCount += delCnt
 	}
-	return count, nil
+	return updatedCount, deletedCount, nil
 }

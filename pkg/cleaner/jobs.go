@@ -7,11 +7,11 @@ import (
 )
 
 type jobUpdater struct {
-	job batchv1.Job
+	job *batchv1.Job
 }
 
 func (u *jobUpdater) Update(c *Common) error {
-	_, err := c.clientset.BatchV1().Jobs(u.job.Namespace).Update(&u.job)
+	_, err := c.clientset.BatchV1().Jobs(u.job.Namespace).Update(u.job)
 	return err
 }
 
@@ -23,14 +23,14 @@ func (u *jobUpdater) Delete(c *Common) error {
 	return c.clientset.BatchV1().Jobs(u.job.Namespace).Delete(u.job.Name, &metav1.DeleteOptions{})
 }
 
-// DeleteJobs ...
-func (c *Common) DeleteJobs() (int, error) {
-
-	count := 0
+// updateJobs ...
+func (c *Common) updateJobs() (int, int, error) {
+	updatedCount := 0
+	deletedCount := 0
 	jobs, err := c.clientset.BatchV1().Jobs(c.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("List jobs: %v", err)
-		return count, err
+		return updatedCount, deletedCount, err
 	}
 
 	for _, job := range jobs.Items {
@@ -44,7 +44,9 @@ func (c *Common) DeleteJobs() (int, error) {
 		}
 		log.Debugf("Job %s.%s about to be touched ...", job.Namespace, job.Name)
 
-		count += c.updateState(&jobUpdater{job: job})
+		updCnt, delCnt := c.updateState(&jobUpdater{job: &job})
+		updatedCount += updCnt
+		deletedCount += delCnt
 	}
-	return count, nil
+	return updatedCount, deletedCount, nil
 }
