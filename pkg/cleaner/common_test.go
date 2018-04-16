@@ -12,21 +12,16 @@ func assertEqual(t *testing.T, a interface{}, b interface{}) {
 }
 
 func Test_SkipMeta(t *testing.T) {
-	var c *Common
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      CommonDefaults.SkipLabels,
-	}
+	var c Common
+	c = *CommonDefaults
 	c.Init(nil)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "kube-system"}), true)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "kube-foo"}), true)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "foo-system"}), true)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "monitoring"}), true)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "bob"}), false)
-	c = &Common{
-		SkipNamespaceRE: "xyz",
-		SkipLabels:      CommonDefaults.SkipLabels,
-	}
+	c = *CommonDefaults
+	c.SkipNamespaceRE = "xyz"
 	c.Init(nil)
 	assertEqual(t, c.skipFromMeta(&metav1.ObjectMeta{Namespace: "kube-system"}), false)
 }

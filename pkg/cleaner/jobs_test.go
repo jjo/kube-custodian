@@ -73,44 +73,36 @@ func Test_DeleteJobs(t *testing.T) {
 			},
 		},
 	}
-	var c *Common
+	var c Common
 
 	t.Logf("Should delete all jobs except those in kube-system and monitoring NS")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      []string{"xxx"},
-	}
+	c = *CommonDefaults
+	c.SkipLabels = []string{"xxx"}
 	c.Init(fake.NewSimpleClientset(jobObj, podObj))
 	count, err := c.DeleteJobs()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 3)
 
 	t.Logf("Should delete only the jobs in ns1 and its pod")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      []string{"xxx"},
-		Namespace:       "ns1",
-	}
+	c = *CommonDefaults
+	c.SkipLabels = []string{"xxx"}
+	c.Namespace = "ns1"
 	c.Init(fake.NewSimpleClientset(jobObj, podObj))
 	count, err = c.DeleteJobs()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 2)
 
 	t.Logf("Should not delete any, as the first two have the required label")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      CommonDefaults.SkipLabels,
-	}
+	c = *CommonDefaults
 	c.Init(fake.NewSimpleClientset(jobObj, podObj))
 	count, err = c.DeleteJobs()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 0)
 
 	t.Logf("Should delete all jobs, as namespaceRE and skipLabels don't match any")
-	c = &Common{
-		SkipNamespaceRE: ".*sYsTEM",
-		SkipLabels:      []string{"xxx"},
-	}
+	c = *CommonDefaults
+	c.SkipNamespaceRE = ".*sYsTEM"
+	c.SkipLabels = []string{"xxx"}
 	c.Init(fake.NewSimpleClientset(jobObj, podObj))
 	count, err = c.DeleteJobs()
 	assertEqual(t, err, nil)

@@ -7,7 +7,6 @@ import (
 
 // DeleteDeployments ...
 func (c *Common) DeleteDeployments() (int, error) {
-
 	count := 0
 	deploys, err := c.clientset.AppsV1().Deployments(c.Namespace).List(metav1.ListOptions{})
 	if err != nil {

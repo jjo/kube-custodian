@@ -49,13 +49,10 @@ func Test_DeletePodsCond(t *testing.T) {
 			},
 		},
 	}
-	var c *Common
+	var c Common
 
 	t.Logf("Should delete all pods")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      CommonDefaults.SkipLabels,
-	}
+	c = *CommonDefaults
 	c.Init(fake.NewSimpleClientset(obj))
 	count, err := c.DeletePodsCond("",
 		func(pod *corev1.Pod) bool {
@@ -65,10 +62,7 @@ func Test_DeletePodsCond(t *testing.T) {
 	assertEqual(t, count, 5)
 
 	t.Logf("Should delete a single filterIn() Pod")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      CommonDefaults.SkipLabels,
-	}
+	c = *CommonDefaults
 	c.Init(fake.NewSimpleClientset(obj))
 	count, err = c.DeletePodsCond("",
 		func(pod *corev1.Pod) bool {
@@ -78,10 +72,7 @@ func Test_DeletePodsCond(t *testing.T) {
 	assertEqual(t, count, 1)
 
 	t.Logf("Should not delete any pods")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      CommonDefaults.SkipLabels,
-	}
+	c = *CommonDefaults
 	c.Init(fake.NewSimpleClientset(obj))
 	count, err = c.DeletePodsCond("",
 		func(pod *corev1.Pod) bool {

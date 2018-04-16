@@ -10,20 +10,20 @@ import (
 const (
 	flagSkipLabels      = "skip-labels"
 	flagSkipNamespaceRe = "skip-namespace-re"
-	flagTagForDeletion  = "tag-for-deletion"
-	flagTagCleanup      = "tag-cleanup"
 	flagTagTTL          = "tag-ttl"
+	flagTagForDeletion  = "tag-for-deletion"
 	flagDeleteTagged    = "delete-tagged"
+	flagCleanUpTag      = "cleanup-tag"
 )
 
 func init() {
 	rootCmd.AddCommand(runCmd)
 	runCmd.PersistentFlags().StringSlice(flagSkipLabels, cleaner.CommonDefaults.SkipLabels, "Labels required for resources to be skipped from scanning")
 	runCmd.PersistentFlags().String(flagSkipNamespaceRe, cleaner.CommonDefaults.SkipNamespaceRE, "Regex of namespaces to skip, typically 'system' ones and alike")
+	runCmd.PersistentFlags().String(flagTagTTL, cleaner.CommonDefaults.TagTTL, "Time to live after marked, before deletion")
 	runCmd.PersistentFlags().Bool(flagTagForDeletion, true, "Tag resources for later deletion")
-	runCmd.PersistentFlags().Bool(flagTagCleanup, false, "Untag resources from later deletion")
-	runCmd.PersistentFlags().String(flagTagTTL, "24h", "Time to live after marked, before deletion")
 	runCmd.PersistentFlags().Bool(flagDeleteTagged, true, "Delete tagged resources, after their Tag TTL has passed")
+	runCmd.PersistentFlags().Bool(flagCleanUpTag, false, "Untag resources from later deletion")
 }
 
 var runCmd = &cobra.Command{
@@ -39,6 +39,10 @@ var runCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		c.Namespace, err = flags.GetString("namespace")
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.TagTTL, err = flags.GetString(flagTagTTL)
 		if err != nil {
 			log.Fatal(err)
 		}

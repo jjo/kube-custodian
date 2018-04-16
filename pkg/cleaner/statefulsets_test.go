@@ -50,44 +50,36 @@ func Test_DeleteStatefulSets(t *testing.T) {
 			},
 		},
 	}
-	var c *Common
+	var c Common
 
 	t.Logf("Should delete all sts except those in kube-system and monitoring NS")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      []string{"xxx"},
-	}
+	c = *CommonDefaults
+	c.SkipLabels = []string{"xxx"}
 	c.Init(fake.NewSimpleClientset(obj))
 	count, err := c.DeleteStatefulSets()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 3)
 
 	t.Logf("Should delete only sts in ns1")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      []string{"xxx"},
-		Namespace:       "ns1",
-	}
+	c = *CommonDefaults
+	c.SkipLabels = []string{"xxx"}
+	c.Namespace = "ns1"
 	c.Init(fake.NewSimpleClientset(obj))
 	count, err = c.DeleteStatefulSets()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
 	t.Logf("Should delete only one sts, as the other two candidates have the 'created_by' label")
-	c = &Common{
-		SkipNamespaceRE: CommonDefaults.SkipNamespaceRE,
-		SkipLabels:      CommonDefaults.SkipLabels,
-	}
+	c = *CommonDefaults
 	c.Init(fake.NewSimpleClientset(obj))
 	count, err = c.DeleteStatefulSets()
 	assertEqual(t, err, nil)
 	assertEqual(t, count, 1)
 
 	t.Logf("Should delete all sts, as namespaceRE and skipLabels don't match any")
-	c = &Common{
-		SkipNamespaceRE: ".*sYsTEM",
-		SkipLabels:      []string{"xxx"},
-	}
+	c = *CommonDefaults
+	c.SkipNamespaceRE = ".*sYsTEM"
+	c.SkipLabels = []string{"xxx"}
 	c.Init(fake.NewSimpleClientset(obj))
 	count, err = c.DeleteStatefulSets()
 	assertEqual(t, err, nil)

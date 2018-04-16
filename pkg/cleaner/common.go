@@ -18,11 +18,13 @@ type Common struct {
 	Namespace       string
 	SkipNamespaceRE string
 	SkipLabels      []string
+	TagTTL          string
 
 	clientset kubernetes.Interface
 
 	skipNamespaceRegexp *regexp.Regexp
 	timeStamp           int64
+	tagTTL              int64
 	dryRunStr           string
 }
 
@@ -33,12 +35,19 @@ const (
 var CommonDefaults = &Common{
 	SkipNamespaceRE: "kube-.*|.*(-system|monitoring|logging|ingress)",
 	SkipLabels:      []string{"created_by"},
+	TagTTL:          "24h",
 }
 
 func (c *Common) Init(clientset kubernetes.Interface) {
+	var err error
 	c.skipNamespaceRegexp = regexp.MustCompile(c.SkipNamespaceRE)
 	c.timeStamp = time.Now().Unix()
 	c.dryRunStr = map[bool]string{true: "[dry-run]", false: ""}[c.DryRun]
+	tagTTL, err := time.ParseDuration(c.TagTTL)
+	if err != nil {
+		log.Fatalf("Failed for parse %q as time.Duration", c.TagTTL)
+	}
+	c.tagTTL = int64(tagTTL / time.Second)
 	c.clientset = clientset
 }
 
@@ -68,29 +77,27 @@ func (c *Common) updateState(Update func() error, Delete func() error, objMeta *
 	cnt := 0
 	annotations := objMeta.GetAnnotations()
 	if valueStr, found := annotations[kubeCustodianAnnotationTime]; found {
-		log.Debugf("%s already has annotation %s: %s",
-			fqName, kubeCustodianAnnotationTime, valueStr)
-		value, err := strconv.Atoi(valueStr)
+		value, err := strconv.ParseInt(valueStr, 10, 64)
 		if err != nil {
 			log.Errorf("%s: failed to convert %s to integer", fqName, valueStr)
 		}
-		expiredSecs := c.timeStamp - (int64(value) + 60)
+		expiredSecs := c.timeStamp - (value + c.tagTTL)
+		log.Debugf("%s already has annotation %s: %s, will expire in %.2f hours",
+			fqName, kubeCustodianAnnotationTime, valueStr, -float64(expiredSecs)/3600)
 		if expiredSecs > 0 {
 			log.Debugf("%s%s TTL expired %d seconds ago, deleting",
 				c.dryRunStr, fqName, expiredSecs)
-			/*
-			   if !dryRun {
-			       if err := Delete(); err != nil {
-			           log.Errorf("failed to delete %s with error: %v", fqName, err)
-			       } else {
-			           cnt++
-			       }
-			   }
-			*/
+			if !c.DryRun {
+				if err := Delete(); err != nil {
+					log.Errorf("failed to delete %s with error: %v", fqName, err)
+				} else {
+					cnt++
+				}
+			}
 		}
 	} else {
 		timeStampStr := fmt.Sprintf("%d", c.timeStamp)
-		log.Debugf("[%s]%s updating annotation %s: %s",
+		log.Debugf("%s%s creating annotation %s: %s",
 			c.dryRunStr, fqName, kubeCustodianAnnotationTime, timeStampStr)
 		if !c.DryRun {
 			metav1.SetMetaDataAnnotation(objMeta,
