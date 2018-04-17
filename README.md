@@ -22,11 +22,12 @@ $ kube-custodian -v --namespace=default --dry-run run --tag-ttl 24h --required-l
 Obviously, remove `--dry-run` to _actually_ mark them :), it'll add an
 annotation as
 
-`kube-custodian.bitnami.com/expiration-time: <current epoch secs>`
+  `kube-custodian.bitnami.com/expiration-time: <current epoch secs>`
 
 Then, 24h later same run as above will:
-- update any new workload without this above annotation
-- delete all workloads which
+- Update any new workload without this above annotation
+- Delete all workloads for which:
+
   (`kube-custodian.bitnami.com/expiration-time` + `tag-ttl`) >= `now`
 
 
