@@ -13,17 +13,22 @@ potentially voiding new workloads from scheduling.
 StatefulSets, Jobs, Pods) lacking `--required-labels`.
 
 For example, to mark for later all workloads not having the "created_by"
-label (will add an annotation as
-`kube-custodian.bitnami.com/expiration-time: <current epoch secs>`
+label, run:
 
 ```bash
 $ kube-custodian -v --namespace=default --dry-run run --tag-ttl 24h --required-labels created_by
 ```
 
+Obviously, remove `--dry-run` to actually mark them :), it'll add an
+annotation as `kube-custodian.bitnami.com/expiration-time: <current
+epoch secs>`).
+
 Then, 24h later same run as above will:
 - update any new workload without this above annotation
 - delete all workloads which
   (`kube-custodian.bitnami.com/expiration-time` + `tag-ttl`) >= `now`
+
+
 
 ## Install
 
